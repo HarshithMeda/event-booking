@@ -1,5 +1,6 @@
 package com.harshith.event_booking.exception;
 
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -36,6 +37,36 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return problem(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage());
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ProblemDetail handleBookingNotFound(BookingNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "Booking not found", ex.getMessage());
+    }
+
+    @ExceptionHandler(SeatUnavailableException.class)
+    public ProblemDetail handleSeatUnavailable(SeatUnavailableException ex) {
+        return problem(HttpStatus.CONFLICT, "Seats unavailable", ex.getMessage());
+    }
+
+    @ExceptionHandler(BookingStateException.class)
+    public ProblemDetail handleBookingState(BookingStateException ex) {
+        return problem(HttpStatus.CONFLICT, "Booking cannot be changed", ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidBookingRequestException.class)
+    public ProblemDetail handleInvalidBooking(InvalidBookingRequestException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage());
+    }
+
+    /**
+     * Safety net: a version conflict or deadlock that wasn't caught closer to the source.
+     * The transaction has already been rolled back, so nothing was saved.
+     */
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ProblemDetail handleConcurrencyFailure(ConcurrencyFailureException ex) {
+        return problem(HttpStatus.CONFLICT, "Conflict",
+                "Someone else changed this at the same time. Nothing was saved; please try again.");
     }
 
     /** Adds which fields failed validation, e.g. {"errors": {"password": "size must be between 8 and 72"}}. */

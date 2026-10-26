@@ -19,7 +19,6 @@ public class MeController {
 
     @GetMapping("/api/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
-        Number uid = jwt.getClaim(TokenService.UID_CLAIM);
-        return authService.currentUser(uid.longValue());
+        return authService.currentUser(TokenService.userId(jwt));
     }
 }

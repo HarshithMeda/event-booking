@@ -3,6 +3,7 @@ package com.harshith.event_booking.security;
 import com.harshith.event_booking.model.AppUser;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -34,5 +35,11 @@ public class TokenService {
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    }
+
+    /** The logged-in user's id, read from a token Spring Security has already verified. */
+    public static Long userId(Jwt jwt) {
+        Number uid = jwt.getClaim(UID_CLAIM);
+        return uid.longValue();
     }
 }
