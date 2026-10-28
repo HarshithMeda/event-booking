@@ -1,5 +1,6 @@
 package com.harshith.event_booking.service;
 
+import com.harshith.event_booking.cache.SeatsChangedEvent;
 import com.harshith.event_booking.dto.BookingResponse;
 import com.harshith.event_booking.dto.HoldRequest;
 import com.harshith.event_booking.exception.BookingNotFoundException;
@@ -19,6 +20,7 @@ import com.harshith.event_booking.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,9 @@ import java.util.stream.Collectors;
  * Holds, confirms and cancels seats. Double booking is prevented with optimistic locking:
  * every seat and booking update runs "UPDATE ... WHERE id = ? AND version = ?", so if two
  * requests change the same row, only the first to commit wins. See docs/booking-design.md.
+ *
+ * This class never reads the cache: seat availability always comes from the database.
+ * After each change it publishes SeatsChangedEvent, which clears the cached seat map after commit.
  */
 @Service
 public class BookingService {
@@ -46,15 +51,18 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher events;
     private final Duration holdDuration;
 
     public BookingService(BookingRepository bookingRepository, SeatRepository seatRepository,
                           EventRepository eventRepository, UserRepository userRepository,
+                          ApplicationEventPublisher events,
                           @Value("${app.booking.hold-duration:PT10M}") Duration holdDuration) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.events = events;
         this.holdDuration = holdDuration;
     }
 
@@ -106,6 +114,7 @@ public class BookingService {
         Booking booking = new Booking(userRepository.getReferenceById(userId), event, displayOrder,
                 totalCents, Instant.now().plus(holdDuration));
         bookingRepository.save(booking);
+        events.publishEvent(new SeatsChangedEvent(event.getId()));
         return BookingResponse.from(booking);
     }
 
@@ -124,6 +133,7 @@ public class BookingService {
         booking.getSeats().forEach(s -> s.setStatus(SeatStatus.BOOKED));
         booking.setStatus(BookingStatus.CONFIRMED);
         flush(booking);
+        events.publishEvent(new SeatsChangedEvent(booking.getEvent().getId()));
         return BookingResponse.from(booking);
     }
 
@@ -141,6 +151,7 @@ public class BookingService {
         booking.getSeats().forEach(s -> s.setStatus(SeatStatus.AVAILABLE));
         booking.setStatus(BookingStatus.CANCELLED);
         flush(booking);
+        events.publishEvent(new SeatsChangedEvent(booking.getEvent().getId()));
         return BookingResponse.from(booking);
     }
 
@@ -170,6 +181,7 @@ public class BookingService {
         booking.getSeats().forEach(s -> s.setStatus(SeatStatus.AVAILABLE));
         booking.setStatus(BookingStatus.EXPIRED);
         bookingRepository.saveAndFlush(booking);
+        events.publishEvent(new SeatsChangedEvent(booking.getEvent().getId()));
         return true;
     }
 
