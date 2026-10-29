@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only access to the repo is all CI needs.
+permissions:
+  contents: read
+
+# A newer push cancels an older run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Java 21, Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Unit + integration tests. Testcontainers uses the runner's Docker for PostgreSQL 17 and Redis.
+      # Tests use their own dummy JWT secret, so no secrets are needed here.
+      - name: Run test suite
+        run: ./mvnw -B verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+  docker:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Proves the Dockerfile builds. Nothing is pushed anywhere.
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          tags: event-booking:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

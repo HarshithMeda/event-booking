@@ -1,0 +1,12 @@
+# Keep build output, git history, secrets and OS clutter out of the Docker build.
+target/
+.git/
+local.properties
+.env
+.env.*
+!.env.example
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.iml
