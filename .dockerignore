@@ -1,5 +1,7 @@
 # Keep build output, git history, secrets and OS clutter out of the Docker build.
 target/
+frontend/node_modules/
+frontend/dist/
 .git/
 local.properties
 .env

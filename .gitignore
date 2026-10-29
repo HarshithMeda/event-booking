@@ -35,3 +35,6 @@ build/
 local.properties
 .env
 .DS_Store
+
+### Frontend build copied into the jar (Docker does this; never commit it) ###
+src/main/resources/static/

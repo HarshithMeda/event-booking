@@ -62,6 +62,18 @@ class SecurityIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
     }
 
+    @Test
+    void frontendFilesArePublic_butOnlyForGet() throws Exception {
+        // The React build isn't on the test classpath, so these are 404 (not found), never 401.
+        for (String path : new String[] {"/", "/index.html", "/assets/index-abc123.js", "/favicon.svg"}) {
+            mockMvc.perform(get(path)).andExpect(status().isNotFound());
+        }
+        // Everything else keeps the old rules.
+        mockMvc.perform(post("/")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/some-other-page")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/bookings")).andExpect(status().isUnauthorized());
+    }
+
     // ---- no token
 
     @Test
