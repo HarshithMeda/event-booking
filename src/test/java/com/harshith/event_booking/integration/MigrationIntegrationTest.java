@@ -26,21 +26,22 @@ class MigrationIntegrationTest extends IntegrationTestBase {
 
         List<Map<String, Object>> history = jdbc.queryForList(
                 "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
-        assertThat(history).extracting(row -> row.get("version")).containsExactly("1", "2", "3", "4");
+        assertThat(history).extracting(row -> row.get("version")).containsExactly("1", "2", "3", "4", "5");
         assertThat(history).extracting(row -> row.get("success")).containsOnly(true);
     }
 
     @Test
-    void seedDataFromV2_has3EventsWith50SeatsEach_rowsAandBPricedHigher() {
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM events", Integer.class)).isEqualTo(3);
+    void seedData_has8EventsWith50SeatsEach_rowsAandBPricedHigher() {
+        // V2 adds 3 events, V5 adds 5 more.
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM events", Integer.class)).isEqualTo(8);
         assertThat(jdbc.queryForList("SELECT count(*) FROM seats GROUP BY event_id", Integer.class))
-                .containsExactly(50, 50, 50);
+                .hasSize(8).containsOnly(50);
         assertThat(jdbc.queryForObject(
                 "SELECT count(*) FROM seats WHERE seat_row IN ('A','B') AND price_cents = 7500", Integer.class))
-                .isEqualTo(60);
+                .isEqualTo(8 * 20);
         assertThat(jdbc.queryForObject(
                 "SELECT count(*) FROM seats WHERE seat_row IN ('C','D','E') AND price_cents = 4500", Integer.class))
-                .isEqualTo(90);
+                .isEqualTo(8 * 30);
     }
 
     @Test

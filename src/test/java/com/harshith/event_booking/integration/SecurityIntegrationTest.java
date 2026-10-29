@@ -36,10 +36,11 @@ class SecurityIntegrationTest extends IntegrationTestBase {
     void eventBrowsingIsPublic_andSortedByStartTime() throws Exception {
         mockMvc.perform(get("/api/events"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalElements").value(8))
                 .andExpect(jsonPath("$.content[0].name").value("Jazz in the Park"))
                 .andExpect(jsonPath("$.content[1].name").value("Rock Night Live"))
-                .andExpect(jsonPath("$.content[2].name").value("Comedy Special Tonight"));
+                .andExpect(jsonPath("$.content[2].name").value("Winter Lights Symphony"))
+                .andExpect(jsonPath("$.content[7].name").value("Summer Folk Gathering"));
         mockMvc.perform(get("/api/events/{id}", rockNight()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.venue").value("City Arena"));
