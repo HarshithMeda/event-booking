@@ -13,6 +13,7 @@ import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.data.redis.cache.BatchStrategies;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -56,7 +57,10 @@ public class CacheConfig implements CachingConfigurer {
                 // has done them, and their failures are dropped without reaching the error handler.
                 // Immediate writes mean a seat map eviction is finished before the booking response is sent,
                 // and a failed write or evict is logged as a warning.
-                .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()))
+                // SCAN instead of KEYS when clearing a cache, so clearing never blocks Redis.
+                .cacheWriter(RedisCacheWriter.create(connectionFactory, writer -> writer
+                        .immediateWrites()
+                        .batchStrategy(BatchStrategies.scan(100))))
                 .withCacheConfiguration(CacheNames.EVENT_PAGES, config(mapper, eventPage, eventTtl))
                 .withCacheConfiguration(CacheNames.EVENTS, config(mapper, event, eventTtl))
                 .withCacheConfiguration(CacheNames.SEAT_MAPS, config(mapper, seatMap, seatMapTtl));
