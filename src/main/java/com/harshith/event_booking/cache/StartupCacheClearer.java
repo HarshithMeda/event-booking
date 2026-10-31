@@ -8,6 +8,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,17 +33,21 @@ public class StartupCacheClearer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void clearEventCaches() {
+        List<String> cleared = new ArrayList<>();
         for (String name : CACHES) {
             try {
                 Cache cache = cacheManager.getCache(name);
                 if (cache != null) {
                     cache.clear();
+                    cleared.add(name);
                 }
             } catch (RuntimeException e) {
                 log.warn("Could not clear cache {} on startup; its entries will expire with their TTL ({})",
                         name, e.getClass().getSimpleName());
             }
         }
-        log.info("Cleared caches on startup: {}", CACHES);
+        if (!cleared.isEmpty()) {
+            log.info("Cleared caches on startup: {}", cleared);
+        }
     }
 }

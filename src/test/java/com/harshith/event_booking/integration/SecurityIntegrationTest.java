@@ -75,6 +75,19 @@ class SecurityIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(get("/api/bookings")).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void healthProbesArePublic_otherActuatorEndpointsAreNot() throws Exception {
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+        // The full health report (database, Redis details) and other endpoints are not public.
+        mockMvc.perform(get("/actuator/health")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    }
+
     // ---- no token
 
     @Test

@@ -28,6 +28,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // Spring's error page must stay reachable, or real errors would show up as 401.
                         .requestMatchers("/error").permitAll()
+                        // Health checks for the hosting platform. Other actuator endpoints stay protected.
+                        .requestMatchers(HttpMethod.GET, "/actuator/health/readiness", "/actuator/health/liveness").permitAll()
                         .anyRequest().authenticated())
                 // Spring Security's built-in JWT check (uses the JwtDecoder bean from JwtConfig).
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));

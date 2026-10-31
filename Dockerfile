@@ -39,9 +39,11 @@ COPY --from=build --chown=app:app /workspace/extracted/application/ ./
 
 USER app
 
-# Size the heap from the container's memory limit (not the host's), leaving 30% for
-# metaspace, threads and other non-heap memory. Exit on OutOfMemoryError so Docker restarts us.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError"
+# Memory for a small container (measured: non-heap is ~260 MB for this app, the heap ~125 MB under load).
+# - Heap: 40% of the container limit (~205 MB on 512 MB), the rest is for non-heap memory.
+# - Code cache and metaspace are capped so they can't slowly grow past the container limit.
+# - Exit on OutOfMemoryError so the platform restarts the app cleanly.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40 -XX:ReservedCodeCacheSize=64m -XX:MaxMetaspaceSize=160m -XX:+ExitOnOutOfMemoryError"
 ENV PORT=8080
 EXPOSE 8080
 
